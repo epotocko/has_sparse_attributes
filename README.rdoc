@@ -4,70 +4,84 @@
 
 == Usage
 
-options
-  :storage - :column or :table (required)
-  :serialize - set to true to serialize all values before they are stored in the database (YAML is used for serialization), 
-               all values are stored as strings if false 
+=== options
+<tt>:storage</tt> - <tt>:column</tt> or <tt>:table</tt> (required)
 
-column storage options
-  :column_name - the name of the column where the attributes will be stored
-			   
-table storage options
-  :attribute_class_name - the name of the attribute key/value class, defaults to SparseAttribute
-  :table_name - the name of the table where the key/value records are stored
-  :id_column - the name of the unique id column in the table
+<tt>:serialize</tt> - set to true to serialize all values before they are stored in the database (YAML is used for serialization), all values are stored as strings if false 
+
+=== column storage options
+<tt>:column_name</tt> - the name of the column where the attributes will be stored
+		   
+=== table storage options
+<tt>:attribute_class_name</tt> - the name of the attribute key/value class, defaults to SparseAttribute
+
+<tt>:table_name</tt> - the name of the table where the key/value records are stored
+
+<tt>:id_column</tt> - the name of the unique id column in the table
   
 == Examples
 
 === Column Storage
+====Migration:
 
- * create_table :guitars do |t|
-     t.string :brand, :limit => 255
-     t.string :model, :limit => 255
-     t.integer :strings, :default => 6
-     t.text :sparse_attributes
-   end
+  create_table :guitars do |t|
+    t.string :brand, :limit => 255
+    t.string :model, :limit => 255
+    t.integer :strings, :default => 6
+    t.text :sparse_attributes
+  end
+
+====Model:
+
+  class Guitar < ActiveRecord::Base
+    has_sparse_attributes([:weight, :color, :year], :storage => :column)
+  end
+
+====Usage:
   
- * class Guitar < ActiveRecord::Base
-     has_sparse_attributes([:weight, :color, :year], :storage => :column)
-   end
-   
-   x = Guitar.new()
-   x.color = 'Green'
-   x.save
+  x = Guitar.new()
+  x.color = 'Green'
+  x.save
    
 === Table Storage
   
-  * create_table :guitars do |t|
-     t.string :brand, :limit => 255
-     t.string :model, :limit => 255
-     t.integer :strings, :default => 6
-    end
+====Migration:
+
+  create_table :guitars do |t|
+   t.string :brand, :limit => 255
+   t.string :model, :limit => 255
+   t.integer :strings, :default => 6
+  end
 	
-	create_table :guitar_sparse_attributes do |t|
-      t.references :guitar
-      t.string :name, :limit => 255
-      t.string :value, :limit => 1024
-	end
-	
- * class Guitar < ActiveRecord::Base
+  create_table :guitar_sparse_attributes do |t|
+    t.references :guitar
+    t.string :name, :limit => 255
+    t.string :value, :limit => 1024
+  end
+
+====Model:
+  
+  class Guitar < ActiveRecord::Base
      has_sparse_attributes([:weight, :color, :year], :storage => :table)
-   end
-   
-   x = Guitar.new()
-   x.color = 'Green'
-   x.save
+  end
+
+====Usage:
+
+  x = Guitar.new()
+  x.color = 'Green'
+  x.save
+  puts x.color
   
 == Column Storage Details
 Attributes are serialized and stored in a column.
 Operations are not atomic.
-Add/Update/Delete - Requires one SELECT query to retrieve the existing attributes and one UPDATE query to write the attributes.
+* Add/Update/Delete - Requires one SELECT query to retrieve the existing attributes and one UPDATE query to write the attributes.
 
 == Table Storage Details
 Attributes are stored in a EAV table where each attribute is one row.
-Add - One SELECT to search for an existing attribute and one INSERT to add the record (for each key/value pair)
-Update - One UPDATE query per key/value pair, if the record id has changed there is an additional SELECT & UPDATE required
-Delete - One DELETE if the record id has not changed since it was read from the database, two DELETE queries if the id has changed
+* Add - One SELECT to search for an existing attribute and one INSERT to add the record (for each key/value pair)
+* Update - One UPDATE query per key/value pair, if the record id has changed there is an additional SELECT & UPDATE required
+* Delete - One DELETE if the record id has not changed since it was read from the database, two DELETE queries if the id has changed
 
 == Project Info
 
