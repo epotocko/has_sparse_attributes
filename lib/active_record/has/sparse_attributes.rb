@@ -73,6 +73,15 @@ module ActiveRecord #:nodoc:
 
 			module InstanceMethods
 
+				def get_sparse_attributes()
+					r = {}
+					self.sparse_attributes.each_key do |k|
+						v = self.get_sparse_attribute(k)
+						r[k] = v unless v.nil?
+					end
+					return r
+				end
+			
 				def get_sparse_attribute(name)
 					self.get_sparse_attribute_storage(name).get(name)
 				end
