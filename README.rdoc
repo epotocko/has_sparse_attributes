@@ -1,6 +1,6 @@
 = has_sparse_attributes
 
-
+has_sparse_attributes is an extension for ActiveRecord that allows key/value attributes to be added to a model.  The key/value attributes are then stored using one of the available storage options.  Current storage engines 
 
 == Usage
 
@@ -19,7 +19,7 @@
 
 <tt>:id_column</tt> - the name of the unique id column in the table
   
-== Examples
+==Examples
 
 === Column Storage
 ====Migration:
@@ -59,6 +59,8 @@
     t.string :value, :limit => 1024
   end
 
+  add_index :guitar_sparse_attributes, [:guitar_id, :name], :unique => true
+
 ====Model:
   
   class Guitar < ActiveRecord::Base
@@ -72,13 +74,19 @@
   x.save
   puts x.color
   
-== Column Storage Details
-Attributes are serialized and stored in a column.
-Operations are not atomic.
-* Add/Update/Delete - Requires one SELECT query to retrieve the existing attributes and one UPDATE query to write the attributes.
+==Column Storage Details
+Attributes are serialized as YAML and stored in a column using the ActiveRecord {serialize}[http://api.rubyonrails.org/classes/ActiveRecord/Base.html#method-c-serialize] method.
 
-== Table Storage Details
-Attributes are stored in a EAV table where each attribute is one row.
+===Performance
+* Add/Update/Delete - Requires one SELECT query to retrieve the existing attributes and one INSERT/UPDATE query to write the attributes.
+
+===Concurrency
+Operations are not atomic, sparse attributes may be lost if multiple saves occur simultaneously for the same record.  Versioning will be added as an option in the future to resolve this.
+
+==Table Storage Details
+Attributes are stored in a key/value table where each attribute is one row.
+
+===Performance
 * Add - One SELECT to search for an existing attribute and one INSERT to add the record (for each key/value pair)
 * Update - One UPDATE query per key/value pair, if the record id has changed there is an additional SELECT & UPDATE required
 * Delete - One DELETE if the record id has not changed since it was read from the database, two DELETE queries if the id has changed
