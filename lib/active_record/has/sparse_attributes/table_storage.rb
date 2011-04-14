@@ -125,15 +125,15 @@ module ActiveRecord #:nodoc:
 					end
 						
 					if !have_attribute || updated == false
-						# TODO: fix synchronization issues
 						method_name = ('find_or_create_by_' + klass_id_column.to_s + '_and_name').to_sym
 						attribute = klass.send(method_name, klass_id_column => @record.id, :name => name, :value => value)
-						if !attribute.new_record?
+						if attribute.value != value
 							attribute.value = value
 							updated = attribute.save
 						else
 							updated = 1
 						end
+						
 						@sparse_attributes[name] = attribute
 					end
 					return updated
