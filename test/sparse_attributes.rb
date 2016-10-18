@@ -1,15 +1,38 @@
-require 'test/unit'
+$: << (File.expand_path(File.dirname(__FILE__) + "/../lib"))
+
+DATABASE_TYPE = :sqlite3
 
 require 'rubygems'
-gem 'activerecord', '>= 1.15.4.7794'
 
-#gem 'activerecord', '>= 3.0.0'
-
+gem 'activerecord', '4.0.13'
 require 'active_record'
 
-require "#{File.dirname(__FILE__)}/../init"
+gem 'minitest'
+require 'minitest/autorun'
 
-ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :database => ":memory:")
+if defined?(MiniTest::Test)
+	TestCase = MiniTest::Test
+elsif defined?(MiniTest::Unit::TestCase)
+	TestCase = MiniTest::Unit::TestCase
+elsif defined?(Test::Unit::TestCase)
+	TestCase = Test::Unit::TestCase
+end
+
+require_relative "../init"
+
+if DATABASE_TYPE == :sqlite3
+	ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
+elsif DATABASE_TYPE == :postgresql
+	ActiveRecord::Base.establish_connection(
+	  :host => 'db1',
+	  :adapter => 'postgresql',
+	  :encoding => 'utf8',
+	  :database => 'rails_plugin_test',
+	  :pool => 5,
+	  :username => 'rails_test',
+	  :password => 'test123'
+	)
+end
 
 def setup_db
 	ActiveRecord::Schema.define(:version => 1) do
@@ -35,7 +58,9 @@ def setup_db
 			t.string :name, :limit => 255
 			t.string :value, :limit => 1024
 		end
-		
+
+		add_index :electric_bass_sparse_attributes, [:electric_bass_id, :name], :name => 'uniq_electric_bass_sparse_attributes', :unique => true
+
 		create_table :acoustic_guitars do |t|
 			t.string :brand, :limit => 255
 			t.string :model, :limit => 255
@@ -58,11 +83,13 @@ def setup_db
 			t.string :name, :limit => 255
 			t.string :value, :limit => 1024
 		end
-		
+
+		add_index :acoustic_bass_sparse_attributes, [:acoustic_bass_id, :name], :name => 'uniq_acoustic_bass_sparse_attributes', :unique => true
+
 		create_table :acoustic_guitar_cases do |t|
 			t.references :acoustic_guitar
 		end
-		
+
 	end
 end
 
@@ -89,10 +116,11 @@ class AcousticBass < ActiveRecord::Base
 end
 
 class AcousticGuitarCase < ActiveRecord::Base
-	has_one :acoustic_guitar
+	belongs_to :acoustic_guitar
 end
 
-class SparseAttributesTest < Test::Unit::TestCase
+
+class SparseAttributesTest < TestCase
 	
 	def setup
 		setup_db
@@ -189,7 +217,7 @@ class SparseAttributesTest < Test::Unit::TestCase
 		assert_equal false, klass.has_sparse_attribute?(:fake)
 		assert_equal false, klass.has_sparse_attribute?('achua')
 		
-		x = klass.find(:first)
+		x = klass.first
 		x.set_sparse_attribute(:color, 'aqua')
 		x.save
 		
@@ -197,13 +225,33 @@ class SparseAttributesTest < Test::Unit::TestCase
 		assert_equal 'aqua', x.get_sparse_attribute(:color)
 		assert_equal 'aqua', x.color
 		
-		x = klass.find(:first)
+		x = klass.first
 		x.set_sparse_attribute('color', 'blue')
 		x.save
 		
 		x = klass.find(x.id)
 		assert_equal 'blue', x.get_sparse_attribute('color')
 		assert_equal 'blue', x.color
+		
+		a = klass.new()
+		a.color = 'green'
+		a.save!
+		aid = a.id
+		assert_equal a.color, 'green'
+		a.color = 'blue'
+		assert_equal a.color, 'blue'
+		a.save!
+		assert_equal a.color, 'blue'
+		
+		a = klass.find(aid)
+		assert_equal a.color, 'blue'
+		a.color = 'yellow'
+		assert_equal a.color, 'yellow'
+		a.save!
+		assert_equal a.color, 'yellow'
+		
+		a = klass.find(aid)
+		assert_equal a.color, 'yellow'
 	end
 	
 	def merge_test(klass)
