@@ -11,7 +11,11 @@ module ActiveRecord #:nodoc:
 					options[:attribute_class_name] ||= 'SparseAttribute'
 					options[:id_column] ||= @model_class.model_name.singular.to_s + '_id'
 					if !options[:table_name].blank?
-						table_name = ('set_table_name "' + options[:table_name] + '";') || ''
+						if ActiveRecord::Base.methods.include?(:set_table_name)
+							table_name = ('set_table_name "' + options[:table_name] + '";') || ''
+						else
+							table_name = 'self.table_name = "' + options[:table_name] + '";'
+						end
 					else
 						table_name = ''						
 					end
@@ -45,7 +49,7 @@ module ActiveRecord #:nodoc:
 					end
 					
 					unserialize = @config.serialize_values
-					attributes = @config.attribute_model.find(:all, :conditions => { @config.id_column => @record.id })
+					attributes = @config.attribute_model.where(@config.id_column => @record.id)
 					attributes.each do |attr|
 						@sparse_attributes[attr.name] = attr
 						@sparse_attribute_values[attr.name] = unserialize ? YAML::load(attr.value) : attr.value
@@ -125,8 +129,12 @@ module ActiveRecord #:nodoc:
 					end
 						
 					if !have_attribute || updated == false
-						method_name = ('find_or_create_by_' + klass_id_column.to_s + '_and_name').to_sym
-						attribute = klass.send(method_name, klass_id_column => @record.id, :name => name, :value => value)
+						if klass.respond_to?(:find_or_create_by)
+							attribute = klass.create_with(:value => value).find_or_create_by(klass_id_column => @record.id, :name => name)
+						else
+							method_name = ('find_or_create_by_' + klass_id_column.to_s + '_and_name').to_sym
+							attribute = klass.send(method_name, klass_id_column => @record.id, :name => name, :value => value)
+						end
 						if attribute.value != value
 							attribute.value = value
 							updated = attribute.save
