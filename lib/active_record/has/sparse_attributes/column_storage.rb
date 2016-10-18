@@ -8,7 +8,11 @@ module ActiveRecord #:nodoc:
 				def initialize(klass, options = {})
 					super
 					@column_name = options[:column_name] || 'sparse_attributes'
-					@model_class.class_eval "serialize '#{@column_name}'"
+					serialize_class = options[:serialize_class]
+					if serialize_class != false
+						@model_class.class_eval "serialize '#{@column_name}'" + 
+							(serialize_class ? ", #{serialize_class.to_s}" : '')
+					end
 				end
 				
 				def instance(record)
@@ -56,7 +60,7 @@ module ActiveRecord #:nodoc:
 				def merge_sparse_attributes()
 					return if @updated_attributes.nil?
 					col = @config.column_name
-					obj = @config.model_class.find(@record.id, { :select => col.to_s })
+					obj = @config.model_class.select(col.to_s).find(@record.id)
 					current = obj[col]
 					if current.nil? or current.empty?
 						return
