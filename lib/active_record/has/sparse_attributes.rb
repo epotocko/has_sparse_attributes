@@ -20,7 +20,7 @@ module ActiveRecord #:nodoc:
 					# First-time initialization
 					if not self.methods.include?('sparse_attributes')
 						class_eval <<-EOV
-							cattr_accessor :sparse_attributes, :instance_writer => false
+							cattr_accessor :sparse_attributes, :instance_accessor => false
 							@@sparse_attributes = {}
 
 							cattr_accessor :sparse_attribute_storage_configs
@@ -33,9 +33,9 @@ module ActiveRecord #:nodoc:
 							def self.has_sparse_attribute?(name)
 								attribute = name.to_s
 								attribute = attribute[0..-2] if attribute.ends_with?('=')
-								return self.sparse_attributes.has_key?(attribute.to_sym)
+								return @@sparse_attributes.has_key?(attribute.to_sym)
 							end
-	
+
 							include ActiveRecord::Has::SparseAttributes::InstanceMethods
 						EOV
 					end
@@ -75,7 +75,7 @@ module ActiveRecord #:nodoc:
 
 				def get_sparse_attributes()
 					r = {}
-					self.sparse_attributes.each_key do |k|
+					self.class.sparse_attributes.each_key do |k|
 						v = self.get_sparse_attribute(k)
 						r[k] = v unless v.nil?
 					end
