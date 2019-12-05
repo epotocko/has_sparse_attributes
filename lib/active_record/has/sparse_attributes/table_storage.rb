@@ -110,7 +110,7 @@ module ActiveRecord #:nodoc:
 					# If the attribute couldn't be deleted by id 
 					# we just scan for the record
 					if !have_attribute || deleted == 0
-						deleted = klass.delete_all(["#{@config.id_column} = ? AND name = ?", @record.id, name])
+						deleted = klass.where(["#{@config.id_column} = ? AND name = ?", @record.id, name]).delete_all
 					end
 					return deleted
 				end
