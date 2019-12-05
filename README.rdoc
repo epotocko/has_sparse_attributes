@@ -96,4 +96,4 @@ Attributes are stored in a key/value table where each attribute is one row.
 == Unit Tests
 Run: ruby test/sparse_attributes.rb 
 
-Copyright (c) 2010-2011 Edward Potocko, released under the MIT license.
+Copyright (c) 2010-2019 Edward Potocko, released under the MIT license.
